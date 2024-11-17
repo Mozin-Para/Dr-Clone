@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dr. CLONE</title>
+    <!-- Include JSZip and JSZip-utils libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.2.2/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip-utils/0.0.2/jszip-utils.min.js"></script>
+    <!-- Include CSS for styling and animations -->
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(45deg, #6b6b6b, #000);
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+             -webkit-user-select: none; /* Safari */
+            -moz-user-select: none; /* Firefox */
+            -ms-user-select: none; /* Internet Explorer/Edge */
+            user-select: none; /* Standard */
+        
+        }
+        h1 {
+            margin-bottom: 20px;
+            animation: fadeIn 2s;
+        }
+        input, button {
+            background-color: #333;
+            color: #fff;
+            border: 1px solid #fff;
+            padding: 10px;
+            margin: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.3s;
+        }
+        input:hover, button:hover {
+            background-color: #fff;
+            color: #333;
+            transform: scale(1.05);
+        }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.4);
+            }
+            70% {
+                box-shadow: 0 0 0 20px rgba(255, 255, 255, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+            }
+        }
+        button {
+            animation: pulse 2s infinite;
+        }
+        button:disabled {
+            background-color: #555;
+            cursor: not-allowed;
+            animation: none;
+        }
+        
+        .custom-file-input::-webkit-file-upload-button {
+  visibility: hidden;
+}
+.custom-file-input::before {
+  content: 'Select clone image';
+  display: inline-block;
+  background: linear-gradient(top, #f9f9f9, #e3e3e3);
+  border: 1px solid #999;
+  border-radius: 3px;
+  padding: 5px 8px;
+  outline: none;
+  white-space: nowrap;
+  -webkit-user-select: none;
+  cursor: pointer;
+  text-shadow: 1px 1px #fff;
+  font-weight: 700;
+  font-size: 10pt;
+}
+.custom-file-input:hover::before {
+  border-color: black;
+}
+.custom-file-input:active::before {
+  background: -webkit-linear-gradient(top, #e3e3e3, #f9f9f9);
+}
+    </style>
+     <script type="text/javascript">
+        document.addEventListener('contextmenu', function(event) {
+            event.preventDefault();
+        });
+    </script>
+      <script type="text/javascript">
+        document.addEventListener('copy', function(event) {
+            event.preventDefault();
+        });
+
+        document.addEventListener('paste', function(event) {
+            event.preventDefault();
+        });
+    </script>
+</head>
+<body>
+    <h1>Dr. CLONE</h1>
+    <!-- File input to upload the .bmp image -->
+    <input class="custom-file-input" type="file" id="upload" accept=".bmp" />
+    <!-- Button to trigger the download of the processed image -->
+    <button id="download" disabled>Process & Download</button>
+    <!-- Canvas to process the image, initially hidden -->
+    <canvas id="canvas" style="display: none;"></canvas>
+    <!-- Canvas to store the final image -->
+    <canvas id="finalCanvas" style="display: none;"></canvas>
+    <script>
+        let originalFileName; // Variable to store the original file name without extension
+
+        // Event listener for file upload
+        document.getElementById('upload').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            originalFileName = file.name.replace(/\.[^/.]+$/, ""); // Remove the file extension
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.getElementById('canvas');
+                    const ctx = canvas.getContext('2d');
+
+                    const resolution = 300; // 300 PPI
+                    const canvasWidthInches = 4.133;
+                    const canvasHeightInches = 6.72;
+                    const canvasWidth = canvasWidthInches * resolution;
+                    const canvasHeight = canvasHeightInches * resolution;
+
+                    // Resize image to 1 x 1 inch
+                    const imageWidthInches = 1;
+                    const imageHeightInches = 1;
+                    const imageWidth = imageWidthInches * resolution;
+                    const imageHeight = imageHeightInches * resolution;
+
+                    // Set canvas size and draw the resized image
+                    canvas.width = imageWidth;
+                    canvas.height = imageHeight;
+                    ctx.drawImage(img, 0, 0, imageWidth, imageHeight);
+
+                    // Invert the colors of the image
+                    const imageData = ctx.getImageData(0, 0, imageWidth, imageHeight);
+                    for (let i = 0; i < imageData.data.length; i += 4) {
+                        imageData.data[i] = 255 - imageData.data[i];       // Invert Red
+                        imageData.data[i + 1] = 255 - imageData.data[i + 1]; // Invert Green
+                        imageData.data[i + 2] = 255 - imageData.data[i + 2]; // Invert Blue
+                    }
+                    ctx.putImageData(imageData, 0, 0);
+
+                    // Flip horizontally
+                    const flippedCanvas = document.createElement('canvas');
+                    flippedCanvas.width = imageWidth;
+                    flippedCanvas.height = imageHeight;
+                    const flippedCtx = flippedCanvas.getContext('2d');
+                    flippedCtx.scale(-1, 1);
+                    flippedCtx.drawImage(canvas, -imageWidth, 0);
+
+                    // Create a new canvas for the final image with specified dimensions
+                    const finalCanvas = document.getElementById('finalCanvas');
+                    const finalCtx = finalCanvas.getContext('2d');
+                    finalCanvas.width = canvasWidth;
+                    finalCanvas.height = canvasHeight;
+
+                    // Fill the final canvas with black
+                    finalCtx.fillStyle = "black";
+                    finalCtx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+                    // Calculate the position to center the image
+                    const x = (canvasWidth - imageWidth) / 2;
+                    const y = (canvasHeight - imageHeight) / 2;
+
+                    // Draw the file name on the top of the final canvas
+                    finalCtx.font = "60px Arial"; // Make the text size three times larger
+                    finalCtx.fillStyle = "white";
+                    finalCtx.textAlign = "center";
+                    finalCtx.fillText(originalFileName, canvasWidth / 2, 60);
+
+                    // Draw the processed image onto the final canvas, centered
+                    finalCtx.drawImage(flippedCanvas, x, y, imageWidth, imageHeight);
+
+                 // Add the bottom text
+finalCtx.font = "20px Arial"; // Set font size for bottom text
+finalCtx.fillText("We are 7sea Family", canvasWidth / 2, canvasHeight - 70); // Adjusted Y position
+finalCtx.fillText("Make your phone brightness high and low as per clone quality. Recommended to set at 70%.", canvasWidth / 2, canvasHeight - 50); // Adjusted Y position
+finalCtx.fillText("clone Ver 2.7 - A2,A7,L0,L1,L2 device OK", canvasWidth / 2, canvasHeight - 20); // Adjusted Y position
+
+
+                    // Enable the download button
+                    document.getElementById('download').disabled = false;
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+
+        document.getElementById('download').addEventListener('click', function() {
+            const finalCanvas = document.getElementById('finalCanvas');
+            const link = document.createElement('a');
+            link.download = `${originalFileName}_7sea.png`;
+            link.href = finalCanvas.toDataURL('image/png');
+            link.click();
+        });
+    </script>
+<br>
+ 
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+ 
+
+<a href="https://70bugsolution.in/clone" style="color:red">
+    <i style="font-size:44px" class="fa fa-refresh" aria-hidden="true"></i>
+</a>
+
+<br><br><br> <Div style="color: white;background-color: transparent;
+            font-size: 24px;">TOTAL NUMBER OF CLONE PROCESSED</div> 
+<script type="text/javascript" src="//counter.websiteout.com/js/5/5/27000/0"></script><br>
+<br>
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        .marquee {
+            width: 100%;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+    </style>
+</head>
+<body>
+    <marquee class="marquee" behavior="slide" direction="right">Note: Press the Refresh Page button after every clone is processed. <br>
+Remember, no databases are used to store your data. Once your data is refreshed or deleted, nothing can be recovered.
+</marquee>
+</body>
+</html>
